@@ -1,8 +1,15 @@
 .env
 .venv/
 *.log
+log.txt
 report.md
 __pycache__/
 *.py[cod]
 .pytest_cache/
 .omc/
+
+# Local drafts and private notes
+_7_board_test/docs/
+_7_board_test/app copy*.py
+_7_board_test/templates/*초반코드용확인*.html
+_7_board_test/templates/*수정으로확인용*.html
