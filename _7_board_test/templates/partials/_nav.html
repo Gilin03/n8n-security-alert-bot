@@ -1,0 +1,54 @@
+<header class="app-header">
+  <div class="app-header__inner">
+    <a href="/" class="brand" aria-label="ALRAM 홈">
+      <span class="brand__mark">⌁</span>
+      <span><span class="brand__name">ALRAM</span><span class="brand__caption">AUTOMATION & ACCESS CONTROL</span></span>
+    </a>
+    <nav class="desktop-nav" aria-label="주 메뉴">
+      <a href="/" class="nav-link {% if request.path == '/' %}is-active{% endif %}">게시판</a>
+      <a href="/dashboard" class="nav-link {% if request.path == '/dashboard' %}is-active{% endif %}">보안 이벤트</a>
+      <a href="/gold" class="nav-link nav-link--accent {% if request.path == '/gold' %}is-active{% endif %}">골드 라운지</a>
+      <a href="/admin" class="nav-link nav-link--danger {% if request.path == '/admin' %}is-active{% endif %}">관리자</a>
+      <a href="/public-posts" class="nav-link {% if request.path.startswith('/public-posts') %}is-active{% endif %}">부산 여행</a>
+      <span id="auth-nav" class="nav-actions" data-auth-nav></span>
+    </nav>
+    <button id="nav-toggle" class="mobile-toggle" type="button" aria-label="메뉴 열기" aria-expanded="false" aria-controls="mobile-menu">
+      <svg id="icon-open" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
+      <svg id="icon-close" class="hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+    </button>
+  </div>
+  <nav id="mobile-menu" class="mobile-menu" aria-label="모바일 주 메뉴">
+    <a href="/" class="nav-link {% if request.path == '/' %}is-active{% endif %}">게시판</a>
+    <a href="/dashboard" class="nav-link {% if request.path == '/dashboard' %}is-active{% endif %}">보안 이벤트</a>
+    <a href="/gold" class="nav-link nav-link--accent {% if request.path == '/gold' %}is-active{% endif %}">골드 라운지</a>
+    <a href="/admin" class="nav-link nav-link--danger {% if request.path == '/admin' %}is-active{% endif %}">관리자</a>
+    <a href="/public-posts" class="nav-link {% if request.path.startswith('/public-posts') %}is-active{% endif %}">부산 여행</a>
+    <span id="auth-nav-mobile" class="nav-actions" data-auth-nav></span>
+  </nav>
+</header>
+
+<script>
+  (function () {
+    const btn = document.getElementById('nav-toggle');
+    const menu = document.getElementById('mobile-menu');
+    const iconOpen = document.getElementById('icon-open');
+    const iconClose = document.getElementById('icon-close');
+    if (!btn || !menu) return;
+    btn.addEventListener('click', function () {
+      const willOpen = !menu.classList.contains('is-open');
+      menu.classList.toggle('is-open', willOpen);
+      iconOpen.classList.toggle('hidden', willOpen);
+      iconClose.classList.toggle('hidden', !willOpen);
+      btn.setAttribute('aria-expanded', String(willOpen));
+      btn.setAttribute('aria-label', willOpen ? '메뉴 닫기' : '메뉴 열기');
+    });
+    window.addEventListener('resize', function () {
+      if (window.innerWidth >= 821 && menu.classList.contains('is-open')) {
+        menu.classList.remove('is-open');
+        iconOpen.classList.remove('hidden');
+        iconClose.classList.add('hidden');
+        btn.setAttribute('aria-expanded', 'false');
+      }
+    });
+  })();
+</script>

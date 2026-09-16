@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ALRAM — 자동화 운영 게시판</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='app.css') }}">
+</head>
+<body class="app-body">
+  {% include 'partials/_nav.html' %}
+
+  <main class="page-shell">
+    <section class="hero-card">
+      <div>
+        <p class="eyebrow">ALRAM / OPERATIONS HUB</p>
+        <span id="automation-status" class="status-pill"><span class="status-dot"></span>n8n workflow connected</span>
+        <h1 class="hero-title">자동 알림과 게시판을<br>한 화면에서 관리하세요.</h1>
+        <p class="hero-copy">공지, 질문, 보안 이벤트를 한 곳에 쌓고 필요한 순간에는 n8n 자동화가 바로 알림을 보냅니다. 팀의 기록과 운영 흐름을 더 선명하게 만드는 게시판입니다.</p>
+        <div class="hero-actions">
+          <button type="button" class="btn btn-accent" onclick="document.getElementById('posts-container').scrollIntoView({behavior:'smooth'})">게시글 피드 보기 ↓</button>
+          <a class="btn btn-quiet" href="/dashboard">보안 이벤트 열기 ↗</a>
+        </div>
+      </div>
+      <div class="hero-metrics" aria-label="서비스 요약">
+        <div class="hero-metric"><div class="hero-metric__label">AUTOMATION</div><div class="hero-metric__value">n8n</div></div>
+        <div class="hero-metric"><div class="hero-metric__label">ACCESS</div><div class="hero-metric__value">JWT</div></div>
+        <div class="hero-metric"><div class="hero-metric__label">BOARD TYPE</div><div class="hero-metric__value">5 lanes</div></div>
+        <div class="hero-metric"><div class="hero-metric__label">STATUS</div><div class="hero-metric__value">Online</div></div>
+      </div>
+    </section>
+
+    <div class="board-layout">
+      <aside class="panel category-sidebar" aria-label="게시판 카테고리">
+        <div class="sidebar-kicker">Explore board</div>
+        <div class="category-list">
+          <button type="button" class="category-button is-active" data-category="전체" onclick="setCategory('전체')"><span>전체 피드</span><span class="category-count">ALL</span></button>
+          <button type="button" class="category-button" data-category="일반" onclick="setCategory('일반')"><span>일반</span><span class="category-count">01</span></button>
+          <button type="button" class="category-button" data-category="공지" onclick="setCategory('공지')"><span>공지</span><span class="category-count">!</span></button>
+          <button type="button" class="category-button" data-category="질문" onclick="setCategory('질문')"><span>질문</span><span class="category-count">?</span></button>
+          <button type="button" class="category-button" data-category="골드" onclick="setCategory('골드')"><span>골드 라운지</span><span class="category-count">★</span></button>
+          <button type="button" class="category-button" data-category="보안" onclick="setCategory('보안')"><span>보안 이벤트</span><span class="category-count">⌁</span></button>
+        </div>
+        <select id="filter-category" class="select category-select" onchange="loadPosts(true)" aria-label="카테고리 선택">
+          <option value="전체">전체 카테고리</option><option value="일반">일반</option><option value="공지">공지</option><option value="질문">질문</option><option value="골드">골드</option><option value="보안">보안</option>
+        </select>
+      </aside>
+
+      <section class="feed-column" aria-labelledby="feed-title">
+        <div class="feed-header">
+          <div><p class="eyebrow">LIVE BOARD</p><h2 id="feed-title" class="feed-title">게시글 피드 <span id="post-count" class="mono" style="color:#a3afbd;font-size:11px;">—</span></h2><p class="feed-caption">가장 최근에 공유된 운영 기록입니다.</p></div>
+          <div class="feed-tools">
+            <div class="search-wrap">
+              <svg class="search-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m21 21-4.35-4.35m2.1-5.4a7.5 7.5 0 1 1-15 0 7.5 7.5 0 0 1 15 0Z"/></svg>
+              <input type="search" id="search-input" class="input" placeholder="제목 또는 내용 검색" aria-label="게시글 검색">
+            </div>
+            <button id="write-btn" type="button" class="btn btn-primary hidden" onclick="openModal()">+ 글쓰기</button>
+          </div>
+        </div>
+        <div id="posts-container" class="posts-container" aria-live="polite"></div>
+        <div id="load-more-container" class="load-more hidden"><button type="button" class="btn btn-quiet" onclick="loadMorePosts()">더 많은 글 불러오기 ↓</button></div>
+      </section>
+
+      <aside class="insight-panel" aria-label="운영 인사이트">
+        <section class="panel insight-card"><div class="insight-card__top"><span class="insight-card__label">Workflow</span><span class="status-pill"><span class="status-dot"></span>Live</span></div><div class="insight-card__value">n8n 알림 연결됨</div><p class="insight-card__copy">보안 거부 이벤트가 발생하면 게시판에 자동 기록되고 지정된 채널로 전달됩니다.</p></section>
+        <section class="panel insight-card"><div class="insight-card__label">Quick route</div><div class="activity-list"><a href="/dashboard" class="activity-item"><span><span class="activity-item__title">보안 이벤트</span><span class="activity-item__copy">허용·거부 로그와 IP 요약</span></span></a><a href="/gold" class="activity-item"><span><span class="activity-item__title">골드 라운지</span><span class="activity-item__copy">등급 전용 자료와 혜택</span></span></a><a href="/public-posts" class="activity-item"><span><span class="activity-item__title">부산 테마여행</span><span class="activity-item__copy">공공데이터 기반 콘텐츠</span></span></a></div></section>
+        <section class="panel insight-card"><div class="insight-card__label">Portfolio note</div><div class="insight-card__value">Record · Protect · Notify</div><p class="insight-card__copy">게시판, RBAC, API Key, n8n을 하나의 운영 경험으로 묶었습니다.</p></section>
+      </aside>
+    </div>
+  </main>
+
+  <div id="auth-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+    <div class="modal-card modal-card--small">
+      <button type="button" class="modal-close" onclick="closeAuthModal()" aria-label="닫기">×</button>
+      <p class="eyebrow">MEMBER ACCESS</p><h2 id="modal-title" class="modal-title">로그인</h2><p class="modal-copy">ALRAM 운영 게시판에 참여하려면 계정으로 로그인하세요.</p>
+      <div class="form-stack"><div><label class="field-label" for="modal-username">아이디</label><input type="text" id="modal-username" class="input" placeholder="아이디"></div><div><label class="field-label" for="modal-password">비밀번호</label><input type="password" id="modal-password" class="input" placeholder="비밀번호"></div></div>
+      <div class="form-actions"><button type="button" class="btn btn-quiet" onclick="closeAuthModal()">취소</button><button id="modal-submit-btn" type="button" class="btn btn-primary" onclick="submitAuth()">로그인</button></div>
+    </div>
+  </div>
+
+  <div id="post-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="post-modal-title">
+    <div class="modal-card"><button type="button" class="modal-close" onclick="closePostModal()" aria-label="닫기">×</button><p class="eyebrow">BOARD COMPOSER</p><h2 id="post-modal-title" class="modal-title">새 글 작성</h2><p class="modal-copy">팀에 공유할 내용을 간결하게 남겨주세요.</p><input type="hidden" id="edit-post-id"><div class="form-stack"><div><label class="field-label" for="post-category">카테고리</label><select id="post-category" class="select"><option value="일반">일반</option><option value="공지">공지</option><option value="질문">질문</option><option value="골드">골드 (골드 등급 전용)</option></select></div><div><label class="field-label" for="post-title">제목</label><input type="text" id="post-title" class="input" placeholder="제목을 입력하세요"></div><div><label class="field-label" for="post-content">내용</label><textarea id="post-content" class="textarea" rows="6" placeholder="내용을 입력하세요"></textarea></div></div><div class="form-actions"><button type="button" class="btn btn-quiet" onclick="closePostModal()">취소</button><button type="button" class="btn btn-accent" onclick="submitPost()">저장하기</button></div></div>
+  </div>
+
+  <script>
+    let currentCursor = null;
+    let isAuthModeLogin = true;
+    let currentUsername = localStorage.getItem('username');
+    let token = localStorage.getItem('token');
+
+    document.addEventListener('DOMContentLoaded', () => { updateAuthUI(); loadPosts(true); });
+
+    function updateAuthUI() {
+      const navs = document.querySelectorAll('[data-auth-nav]');
+      const writeBtn = document.getElementById('write-btn');
+      if (token && currentUsername) {
+        navs.forEach(nav => nav.innerHTML = `<span class="nav-actions__user">안녕하세요, <strong>${escapeHtml(currentUsername)}</strong>님</span> <button class="nav-actions__button" onclick="logout()">로그아웃</button>`);
+        writeBtn.classList.remove('hidden');
+      } else {
+        navs.forEach(nav => nav.innerHTML = `<span class="nav-login"><button onclick="openAuthModal(true)">로그인</button><button onclick="openAuthModal(false)">회원가입</button></span>`);
+        writeBtn.classList.add('hidden');
+      }
+    }
+
+    function setCategory(category) {
+      document.getElementById('filter-category').value = category;
+      document.querySelectorAll('.category-button').forEach(button => button.classList.toggle('is-active', button.dataset.category === category));
+      loadPosts(true);
+    }
+
+    function categoryBadge(category) {
+      if (category === '공지') return 'badge--notice';
+      if (category === '골드') return 'badge--gold';
+      if (category === '보안') return 'badge--security';
+      return '';
+    }
+
+    async function loadPosts(reset = false) {
+      const search = document.getElementById('search-input').value;
+      const category = document.getElementById('filter-category').value;
+      if (reset) { currentCursor = null; document.getElementById('posts-container').innerHTML = ''; }
+      let url = `/api/posts?limit=5`;
+      if (search) url += `&search=${encodeURIComponent(search)}`;
+      if (category) url += `&category=${encodeURIComponent(category)}`;
+      if (currentCursor) url += `&cursor=${currentCursor}`;
+      try {
+        const res = await fetch(url); const data = await res.json(); const container = document.getElementById('posts-container');
+        if (data.posts.length === 0 && reset) { container.innerHTML = '<div class="empty-state">아직 게시글이 없습니다.<br>첫 번째 운영 기록을 남겨보세요.</div>'; document.getElementById('load-more-container').classList.add('hidden'); document.getElementById('post-count').textContent = '0 items'; return; }
+        data.posts.forEach(post => {
+          const isOwner = currentUsername && post.author === currentUsername; const div = document.createElement('article'); div.className = 'post-card';
+          div.innerHTML = `<div class="post-card__meta"><span class="badge ${categoryBadge(post.category)}">${escapeHtml(post.category)}</span><span class="post-card__author">작성자 ${escapeHtml(post.author)}</span></div><h3 class="post-card__title">${escapeHtml(post.title)}</h3><p class="post-card__content">${escapeHtml(post.content)}</p>${isOwner ? `<div class="post-card__actions"><button class="text-button" onclick="openEditModal(${post.id}, '${escapeAttr(post.title)}', '${escapeAttr(post.content)}', '${escapeAttr(post.category)}')">수정</button><button class="text-button text-button--danger" onclick="deletePost(${post.id})">삭제</button></div>` : ''}`;
+          container.appendChild(div);
+        });
+        document.getElementById('post-count').textContent = `${container.children.length} items`;
+        currentCursor = data.next_cursor; document.getElementById('load-more-container').classList.toggle('hidden', !data.has_more);
+        document.querySelectorAll('.category-button').forEach(button => button.classList.toggle('is-active', button.dataset.category === category));
+      } catch (error) { document.getElementById('posts-container').innerHTML = '<div class="empty-state">게시글을 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.</div>'; }
+    }
+
+    function resetAndLoad() { document.getElementById('search-input').value = ''; setCategory('전체'); }
+    function loadMorePosts() { loadPosts(false); }
+    function openAuthModal(isLogin) { isAuthModeLogin = isLogin; document.getElementById('modal-title').innerText = isLogin ? '로그인' : '회원가입'; document.getElementById('modal-submit-btn').innerText = isLogin ? '로그인' : '가입하기'; document.getElementById('auth-modal').classList.remove('hidden'); }
+    function closeAuthModal() { document.getElementById('auth-modal').classList.add('hidden'); }
+
+    async function submitAuth() {
+      const username = document.getElementById('modal-username').value.trim(); const password = document.getElementById('modal-password').value; const endpoint = isAuthModeLogin ? '/api/auth/login' : '/api/auth/register';
+      const res = await fetch(endpoint, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({username, password}) }); const data = await res.json();
+      if (res.ok) { if (isAuthModeLogin) { token = data.access_token; currentUsername = data.username; localStorage.setItem('token', token); localStorage.setItem('username', currentUsername); updateAuthUI(); closeAuthModal(); loadPosts(true); } else { alert('회원가입 완료! 로그인해주세요.'); openAuthModal(true); } } else alert(data.msg || '오류가 발생했습니다.');
+    }
+    function logout() { localStorage.removeItem('token'); localStorage.removeItem('username'); token = null; currentUsername = null; updateAuthUI(); loadPosts(true); }
+    function openModal() { document.getElementById('post-modal-title').innerText = '새 글 작성'; document.getElementById('edit-post-id').value = ''; document.getElementById('post-title').value = ''; document.getElementById('post-content').value = ''; document.getElementById('post-category').value = '일반'; document.getElementById('post-modal').classList.remove('hidden'); }
+    function openEditModal(id, title, content, category) { document.getElementById('post-modal-title').innerText = '글 수정'; document.getElementById('edit-post-id').value = id; document.getElementById('post-title').value = title; document.getElementById('post-content').value = content; document.getElementById('post-category').value = category; document.getElementById('post-modal').classList.remove('hidden'); }
+    function closePostModal() { document.getElementById('post-modal').classList.add('hidden'); }
+    async function submitPost() { const id = document.getElementById('edit-post-id').value; const title = document.getElementById('post-title').value; const content = document.getElementById('post-content').value; const category = document.getElementById('post-category').value; const res = await fetch(id ? `/api/posts/${id}` : '/api/posts', { method: id ? 'PUT' : 'POST', headers: {'Content-Type':'application/json','Authorization':`Bearer ${token}`}, body: JSON.stringify({title, content, category}) }); if (res.ok) { closePostModal(); loadPosts(true); } else alert('처리에 실패했습니다.'); }
+    async function deletePost(id) { if (!confirm('정말 삭제하시겠습니까?')) return; const res = await fetch(`/api/posts/${id}`, {method:'DELETE', headers:{'Authorization':`Bearer ${token}`}}); if (res.ok) loadPosts(true); else alert('삭제 권한이 없습니다.'); }
+    function escapeHtml(str) { return String(str ?? '').replace(/[&<>'"]/g, tag => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[tag] || tag)); }
+    function escapeAttr(str) { return String(str ?? '').replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/\n/g, ' '); }
+    document.getElementById('search-input').addEventListener('keydown', e => { if (e.key === 'Enter') loadPosts(true); });
+  </script>
+</body>
+</html>

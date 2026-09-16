@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>ALRAM — 부산 테마여행</title><link rel="stylesheet" href="{{ url_for('static', filename='app.css') }}"></head>
+<body class="app-body">
+  {% include 'partials/_nav.html' %}
+  <main class="page-shell">
+    <div class="page-header"><div><p class="eyebrow">PUBLIC DATA / BUSAN</p><h1 class="page-title">부산 테마여행</h1><p class="page-subtitle">공공데이터 API에서 불러온 부산의 장소와 이야기를 큐레이션합니다.</p></div><span class="badge badge--security">PUBLIC API · LIVE</span></div>
+    <section class="panel"><div class="panel__header"><div><h2 class="panel__title">오늘의 여행 아카이브</h2><p class="panel__caption">최대 100건의 부산 테마 콘텐츠</p></div><span class="mono" style="color:var(--muted);font-size:11px">BUSAN / 01</span></div><div class="panel__body"><div id="loading" class="help-text" style="padding:12px 0">데이터를 불러오는 중입니다…</div><div id="postListContainer" class="travel-list"></div></div></section>
+  </main>
+  <script>
+    const escapeHtml = s => String(s ?? '').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    async function fetchPublicPosts(){try{const response=await fetch('/api/public/posts');const data=await response.json();const items=data.getRecommendedKr?.item||[];const container=document.getElementById('postListContainer');document.getElementById('loading').style.display='none';if(!items.length){container.innerHTML='<div class="empty-state">조회된 데이터가 없습니다.<br>공공 API 인증키를 확인해 주세요.</div>';return;}items.forEach(item=>{const card=document.createElement('article');card.className='travel-card';card.onclick=()=>{window.location.href=`/public-posts/${item.UC_SEQ}`;};const thumb=document.createElement('img');thumb.className='travel-thumb';thumb.alt='여행지 썸네일';thumb.src=item.MAIN_IMG_THUMB||'';thumb.onerror=()=>{thumb.src='data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="340" height="224" viewBox="0 0 340 224"%3E%3Crect width="340" height="224" fill="%23e9eef3"/%3E%3Ctext x="170" y="116" text-anchor="middle" fill="%23748398" font-family="sans-serif" font-size="14"%3ENO IMAGE%3C/text%3E%3C/svg%3E';};const info=document.createElement('div');const clean=(item.ITEMCNTNTS||'').replace(/<[^>]*>?/gm,'');info.innerHTML=`<span class="badge badge--security">BUSAN SPOT</span><h3 style="margin-top:9px">${escapeHtml(item.TITLE||'제목 없음')}</h3><p>${escapeHtml(clean||'설명이 없습니다.')}</p>`;const arrow=document.createElement('span');arrow.className='travel-arrow';arrow.textContent='→';card.append(thumb,info,arrow);container.appendChild(card);});}catch(error){document.getElementById('loading').innerText='데이터를 불러오는 중 오류가 발생했습니다.';console.error(error);}}
+    fetchPublicPosts();
+  </script>
+</body>
+</html>

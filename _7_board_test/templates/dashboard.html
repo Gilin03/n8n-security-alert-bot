@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>ALRAM — 보안 이벤트</title><link rel="stylesheet" href="{{ url_for('static', filename='app.css') }}"></head>
+<body class="app-body">
+  {% include 'partials/_nav.html' %}
+  <main class="page-shell">
+    <div class="page-header"><div><p class="eyebrow">SECURITY OBSERVABILITY</p><h1 class="page-title">보안 이벤트</h1><p class="page-subtitle">n8n이 판정한 허용·거부 로그를 한눈에 확인하고, 다음 조치를 빠르게 결정하세요.</p></div><div class="page-actions"><select id="student-filter" class="select" style="min-width:150px"><option value="">전체 학생</option></select><button id="refresh-btn" class="btn btn-primary">새로고침 ↻</button></div></div>
+    <section class="metric-grid" aria-label="보안 이벤트 요약"><div class="panel metric-card metric-card--accent"><div class="metric-card__label">All events</div><div id="stat-total" class="metric-card__value">-</div></div><div class="panel metric-card metric-card--danger"><div class="metric-card__label">Denied</div><div id="stat-deny" class="metric-card__value">-</div></div><div class="panel metric-card metric-card--success"><div class="metric-card__label">Allowed</div><div id="stat-allow" class="metric-card__value">-</div></div><div class="panel metric-card"><div class="metric-card__label">Top denied IP</div><div id="stat-top-ip" class="metric-card__value metric-card__value--small mono">-</div></div></section>
+    <div class="content-stack">
+      <section class="panel"><div class="panel__header"><div><h2 class="panel__title">거부 상위 IP</h2><p class="panel__caption">실패 횟수가 높은 출발지부터 표시합니다.</p></div><span class="badge badge--notice">Risk signals</span></div><div class="panel__body"><div id="top-ips" class="progress-list"><div class="help-text">불러오는 중…</div></div></div></section>
+      <section class="panel"><div class="panel__header"><div><h2 class="panel__title">최근 이벤트</h2><p class="panel__caption">가장 최근에 저장된 인증 이벤트입니다.</p></div><div class="filter-tabs"><button data-decision="" class="filter-btn is-active">전체</button><button data-decision="deny" class="filter-btn">거부</button><button data-decision="allow" class="filter-btn">허용</button></div></div><div class="data-table-wrap"><table class="data-table"><thead><tr><th>#</th><th>학생</th><th>출발지 IP</th><th>판정</th><th>심각도</th><th>횟수</th><th>사유</th><th>저장 시각</th></tr></thead><tbody id="event-rows"><tr><td colspan="8" class="help-text" style="text-align:center">불러오는 중…</td></tr></tbody></table></div></section>
+    </div>
+    <p class="page-note">DATA SOURCE · <span class="mono">GET /api/security/events</span> · <span class="mono">GET /api/security/events/summary</span> · n8n workflow → <span class="mono">POST /api/security/events</span></p>
+  </main>
+  <script>
+    let currentDecision = '';
+    const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    const badge = decision => decision === 'deny' ? '<span class="badge badge--notice">🚫 거부</span>' : '<span class="badge badge--security">✓ 허용</span>';
+    const sevColor = s => ({High:'text-danger',Medium:'text-amber'}[s] || '');
+    function studentParam() { const v = document.getElementById('student-filter').value; return v ? `student=${encodeURIComponent(v)}` : ''; }
+    async function loadStudents() { try { const r = await fetch('/api/security/students'); const d = await r.json(); const sel = document.getElementById('student-filter'); const keep = sel.value; sel.innerHTML = '<option value="">전체 학생</option>' + (d.students || []).map(s => `<option value="${esc(s)}">${esc(s)}</option>`).join(''); sel.value = keep; } catch (e) {} }
+    async function loadSummary() { const qs = studentParam(); const r = await fetch('/api/security/events/summary' + (qs ? '?' + qs : '')); const d = await r.json(); const deny = d.by_decision?.deny || 0; const allow = d.by_decision?.allow || 0; document.getElementById('stat-deny').textContent = deny; document.getElementById('stat-allow').textContent = allow; document.getElementById('stat-total').textContent = deny + allow; const tops = d.top_deny_ips || []; document.getElementById('stat-top-ip').textContent = tops.length ? tops[0].src_ip : '-'; document.getElementById('top-ips').innerHTML = tops.length ? tops.map(t => `<div class="progress-row"><span class="mono">${esc(t.src_ip)}</span><span class="progress-track"><span class="progress-bar" style="width:${Math.min(100,(t.fails/tops[0].fails)*100)}%"></span></span><span style="text-align:right;color:var(--muted)">${t.fails}회</span></div>`).join('') : '<div class="help-text">거부 기록이 없습니다.</div>'; }
+    async function loadEvents() { const parts = [studentParam(), currentDecision ? `decision=${currentDecision}` : '', 'limit=50'].filter(Boolean).join('&'); const r = await fetch('/api/security/events?' + parts); const d = await r.json(); const tbody = document.getElementById('event-rows'); if (!d.events || !d.events.length) { tbody.innerHTML = '<tr><td colspan="8" class="help-text" style="text-align:center">기록이 없습니다.</td></tr>'; return; } tbody.innerHTML = d.events.map(e => `<tr><td class="mono">${e.id}</td><td><strong>${esc(e.student)}</strong></td><td class="mono">${esc(e.src_ip)}</td><td>${badge(e.decision)}</td><td>${esc(e.severity)}</td><td>${e.fail_count}</td><td title="${esc(e.reason)}">${esc(e.reason)}</td><td class="mono">${esc((e.created_at || '').replace('T',' ').slice(0,19))}</td></tr>`).join(''); }
+    function reload() { loadSummary(); loadEvents(); }
+    document.getElementById('refresh-btn').addEventListener('click', () => { loadStudents(); reload(); }); document.getElementById('student-filter').addEventListener('change', reload);
+    document.querySelectorAll('.filter-btn').forEach(btn => btn.addEventListener('click', () => { currentDecision = btn.dataset.decision; document.querySelectorAll('.filter-btn').forEach(b => b.classList.toggle('is-active', b === btn)); loadEvents(); }));
+    loadStudents(); reload();
+  </script>
+</body>
+</html>

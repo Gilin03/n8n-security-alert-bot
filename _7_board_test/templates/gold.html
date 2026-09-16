@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>ALRAM — 골드 라운지</title><link rel="stylesheet" href="{{ url_for('static', filename='app.css') }}"></head>
+<body class="app-body">
+  {% include 'partials/_nav.html' %}
+  <main class="page-shell">
+    <div id="loading-view" class="panel" style="padding:45px;text-align:center;color:var(--muted)">등급을 확인하는 중…</div>
+    {% include 'partials/_denied.html' %}
+    <div id="protected-view" class="hidden content-stack">
+      <section class="gold-banner"><div class="gold-banner__content"><p class="eyebrow">MEMBER BENEFITS / GOLD</p><h2>골드 회원 전용 라운지</h2><p>환영합니다, <b id="gold-name">회원</b>님 · <span id="gold-role-badge" class="status-pill">골드</span></p></div></section>
+      <section><div class="page-header" style="margin-bottom:14px"><div><p class="eyebrow">WHY GOLD</p><h2 class="feed-title">더 빠르고 깊은 운영 경험</h2></div></div><div class="benefit-grid"><div class="panel benefit-card"><div class="benefit-icon">▣</div><h4>전용 자료 열람</h4><p>골드 회원만 볼 수 있는 게시글과 운영 자료를 확인합니다.</p></div><div class="panel benefit-card"><div class="benefit-icon">↯</div><h4>우선 문의 응대</h4><p>문의와 요청을 남기면 일반 회원보다 먼저 답변을 받습니다.</p></div><div class="panel benefit-card"><div class="benefit-icon">◆</div><h4>이벤트 우선 참여</h4><p>한정 이벤트와 새로운 기능을 가장 먼저 경험합니다.</p></div></div></section>
+      <section class="panel"><div class="panel__header"><div><h2 class="panel__title">골드 전용 게시글</h2><p class="panel__caption">멤버십 카테고리로 분류된 최신 자료</p></div><span class="badge badge--gold">GOLD ONLY</span></div><div id="gold-posts" class="protected-list"><p class="protected-item help-text">불러오는 중…</p></div></section>
+      <p class="page-note">SECURE DATA · <span class="mono">GET /api/gold/posts</span> · 서버에서도 골드 등급을 검사합니다.</p>
+    </div>
+  </main>
+  <script>
+    const REQUIRED_ROLE = 'gold'; const esc = s => String(s ?? '').replace(/[&<>"']/g,c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); const token = () => localStorage.getItem('token'); const authH = () => ({Authorization:'Bearer '+token()}); const hide = id => document.getElementById(id).classList.add('hidden');
+    async function checkGrade() { if (!token()) { hide('loading-view'); showDenied({required:REQUIRED_ROLE,current:null}); return; } let me; try { const res = await fetch('/api/auth/me',{headers:authH()}); hide('loading-view'); if (res.status === 401) { localStorage.removeItem('token'); localStorage.removeItem('username'); showDenied({required:REQUIRED_ROLE,current:null}); return; } me = await res.json(); } catch (e) { hide('loading-view'); showDenied({required:REQUIRED_ROLE,current:null,message:'서버와 통신하지 못했습니다. 잠시 후 다시 시도해 주세요.'}); return; } if (!me.is_gold) { showDenied({required:REQUIRED_ROLE,current:me.role}); return; } document.getElementById('gold-name').textContent = me.username; document.getElementById('gold-role-badge').textContent = me.role_label; showProtected(); loadGoldPosts(); }
+    async function loadGoldPosts() { const box = document.getElementById('gold-posts'); const res = await fetch('/api/gold/posts',{headers:authH()}); if (!res.ok) { const d = await res.json().catch(() => ({})); showDenied({required:d.required_role || REQUIRED_ROLE,current:d.current_role || null}); return; } const posts = (await res.json()).posts || []; if (!posts.length) { box.innerHTML = '<p class="protected-item help-text" style="text-align:center">아직 골드 전용 게시글이 없습니다.<br>게시판에서 카테고리를 골드로 정해 글을 쓰면 여기에 모입니다.</p>'; return; } box.innerHTML = posts.map(p => `<article class="protected-item"><div class="protected-item__title"><span class="badge badge--gold">GOLD</span><span>${esc(p.title)}</span></div><p class="protected-item__copy">${esc(p.content)}</p><span class="post-card__author">${esc(p.author)}</span></article>`).join(''); }
+    checkGrade();
+  </script>
+</body>
+</html>

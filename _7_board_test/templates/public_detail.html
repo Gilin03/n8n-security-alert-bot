@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>ALRAM — 부산 여행 상세</title><link rel="stylesheet" href="{{ url_for('static', filename='app.css') }}"></head>
+<body class="app-body">
+  {% include 'partials/_nav.html' %}
+  <main class="page-shell">
+    <a href="/public-posts" class="text-button" style="display:inline-flex;margin-bottom:14px">← 부산 테마여행 목록</a>
+    <div id="loading" class="panel" style="padding:45px;text-align:center;color:var(--muted)">상세 정보를 불러오는 중입니다…</div>
+    <section id="detailContainer" class="panel detail-card hidden">
+      <div class="detail-hero"><img id="heroImage" class="detail-hero__image" alt="여행지 대표 이미지"><div class="detail-hero__content"><span class="badge badge--security">BUSAN ARCHIVE</span><h1 id="postTitle">제목</h1></div></div>
+      <div class="detail-body"><div class="detail-images"><div class="detail-image-box"><img id="thumbImg" src="" alt="썸네일 이미지"><p class="detail-image-label">THUMBNAIL IMAGE</p></div><div class="detail-image-box"><img id="normalImg" src="" alt="원본 이미지"><p class="detail-image-label">ORIGINAL IMAGE</p></div></div><div id="postContent" class="detail-content"></div></div>
+    </section>
+  </main>
+  <script>
+    const pathSegments=window.location.pathname.split('/');const currentUcSeq=Number(pathSegments[pathSegments.length-1]);
+    async function fetchDetailData(){try{const response=await fetch('/api/public/posts');const data=await response.json();const items=data.getRecommendedKr?.item||[];const targetItem=items.find(item=>item.UC_SEQ===currentUcSeq);document.getElementById('loading').classList.add('hidden');if(!targetItem){document.getElementById('detailContainer').classList.remove('hidden');document.getElementById('detailContainer').innerHTML='<div class="empty-state">해당 데이터를 찾을 수 없습니다.</div>';return;}document.getElementById('postTitle').innerText=targetItem.TITLE||'제목 없음';const thumb=targetItem.MAIN_IMG_THUMB||'';const normal=targetItem.MAIN_IMG_NORMAL||thumb;document.getElementById('thumbImg').src=thumb;document.getElementById('normalImg').src=normal;document.getElementById('heroImage').src=normal;document.getElementById('postContent').textContent=(targetItem.ITEMCNTNTS||'상세 설명이 없습니다.').replace(/<[^>]*>?/gm,'');document.getElementById('detailContainer').classList.remove('hidden');}catch(error){document.getElementById('loading').innerText='상세 데이터를 불러오는 중 오류가 발생했습니다.';console.error(error);}}
+    fetchDetailData();
+  </script>
+</body>
+</html>
